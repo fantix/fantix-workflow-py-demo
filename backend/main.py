@@ -7,6 +7,7 @@ app = with_workflow(fastapi.FastAPI())
 
 @app.middleware("http")
 async def set_vercel_headers(request: fastapi.Request, call_next):
+    print("set vercel headers:", request.headers)
     set_headers(request.headers)
     return await call_next(request)
 
@@ -37,6 +38,8 @@ async def greeting(name: str) -> str:
 
 @router.get("/hello")
 async def root():
+    import os
+    print(os.getenv("VERCEL_DEVELOPMENT_ID"))
     from vercel.workflow.runtime import start
     run = await start(hello_world)
     return run.run_id
