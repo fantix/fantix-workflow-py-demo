@@ -1,9 +1,14 @@
-from fastapi import APIRouter, FastAPI
+import fastapi
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from datetime import datetime
+from vercel.workflow.fastapi import with_workflow
+from vercel.headers import set_headers
 
-app = FastAPI(title="Backend API")
+app = with_workflow(fastapi.FastAPI())
+
+@app.middleware("http")
+async def set_vercel_headers(request: fastapi.Request, call_next):
+    set_headers(request.headers)
+    return await call_next(request)
 
 # Configure CORS for frontend communication
 app.add_middleware(
@@ -14,58 +19,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-router = APIRouter(prefix="/_/backend")
+router = fastapi.APIRouter(prefix="/_/backend")
 
 
-class Message(BaseModel):
-    text: str
+
+from vercel.workflow import *
+
+@workflow
+async def hello_world() -> None:
+    print(await greeting("workflow"))
 
 
-class MessageResponse(BaseModel):
-    message: str
-    timestamp: str
-    reversed: str
+@step
+async def greeting(name: str) -> str:
+    return f"Hello, {name}!"
 
 
-@router.get("/")
-def root():
-    return {"status": "ok", "service": "backend-api"}
-
-
-@router.get("/api/health")
-def health_check():
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-    }
-
-
-@router.get("/api/greeting")
-def get_greeting():
-    return {
-        "message": "Hello from FastAPI backend!",
-        "timestamp": datetime.now().isoformat(),
-    }
-
-
-@router.post("/api/echo", response_model=MessageResponse)
-def echo_message(message: Message):
-    return MessageResponse(
-        message=message.text,
-        timestamp=datetime.now().isoformat(),
-        reversed=message.text[::-1],
-    )
-
-
-@router.get("/api/items")
-def get_items():
-    return {
-        "items": [
-            {"id": 1, "name": "Widget", "price": 9.99},
-            {"id": 2, "name": "Gadget", "price": 19.99},
-            {"id": 3, "name": "Gizmo", "price": 29.99},
-        ]
-    }
-
+@router.get("/hello")
+async def root():
+    from vercel.workflow.runtime import start
+    run = await start(hello_world)
+    return run.run_id
 
 app.include_router(router)
