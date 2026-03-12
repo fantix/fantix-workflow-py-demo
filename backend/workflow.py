@@ -7,15 +7,18 @@ runtime.workflow_entrypoint()
 runtime.step_entrypoint()
 
 @workflow
-async def hello_world() -> None:
+async def hello_world() -> list[str]:
     async with asyncio.TaskGroup() as tg:
-        tg.create_task(orchestrate(greeting_en, greeting_es))
-        tg.create_task(orchestrate(greeting_es, greeting_en, greeting_es))
+        t1 = tg.create_task(orchestrate(greeting_en, greeting_es))
+        t2 = tg.create_task(orchestrate(greeting_es, greeting_en, greeting_es))
+        return [await t1, await t2]
 
 
-async def orchestrate(*greeting_steps):
+async def orchestrate(*greeting_steps) -> str:
+    rv = []
     for (i, greeting) in enumerate(greeting_steps):
-        print(await greeting(f"workflow{i}"))
+        rv.append(await greeting(f"workflow{i}"))
+    return ", ".join(rv)
 
 
 @step

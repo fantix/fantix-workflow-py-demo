@@ -45,12 +45,7 @@ async def get_greeting():
     from workflow import hello_world
     from vercel.workflow.runtime import start
 
-    await start(hello_world)
-
-    return {
-        "message": "Hello from FastAPI backend!",
-        "timestamp": datetime.now().isoformat(),
-    }
+    return (await start(hello_world)).run_id
 
 
 @router.post("/echo", response_model=MessageResponse)
