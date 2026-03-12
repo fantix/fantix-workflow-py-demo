@@ -52,7 +52,7 @@ export default function Home() {
   const checkHealth = async () => {
     setLoading((prev) => ({ ...prev, health: true }));
     try {
-      const res = await fetch(`${BACKEND_URL}/api/health`);
+      const res = await fetch(`${BACKEND_URL}/health`);
       const data = await res.json();
       setHealth(data);
       setIsConnected(true);
@@ -68,7 +68,7 @@ export default function Home() {
   const fetchGreeting = async () => {
     setLoading((prev) => ({ ...prev, greeting: true }));
     try {
-      const res = await fetch(`${BACKEND_URL}/api/greeting`);
+      const res = await fetch(`${BACKEND_URL}/greeting`);
       const data: GreetingResponse = await res.json();
       setGreeting(data);
     } catch (error) {
@@ -82,7 +82,7 @@ export default function Home() {
     if (!echoInput.trim()) return;
     setLoading((prev) => ({ ...prev, echo: true }));
     try {
-      const res = await fetch(`${BACKEND_URL}/api/echo`, {
+      const res = await fetch(`${BACKEND_URL}/echo`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: echoInput }),
@@ -99,7 +99,7 @@ export default function Home() {
   const fetchItems = async () => {
     setLoading((prev) => ({ ...prev, items: true }));
     try {
-      const res = await fetch(`${BACKEND_URL}/api/items`);
+      const res = await fetch(`${BACKEND_URL}/items`);
       const data: ItemsResponse = await res.json();
       setItems(data.items);
     } catch (error) {

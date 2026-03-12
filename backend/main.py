@@ -14,7 +14,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-router = APIRouter(prefix="/_/backend")
+router = APIRouter()
 
 
 class Message(BaseModel):
@@ -32,7 +32,7 @@ def root():
     return {"status": "ok", "service": "backend-api"}
 
 
-@router.get("/api/health")
+@router.get("/health")
 def health_check():
     return {
         "status": "healthy",
@@ -40,15 +40,20 @@ def health_check():
     }
 
 
-@router.get("/api/greeting")
-def get_greeting():
+@router.get("/greeting")
+async def get_greeting():
+    from workflow import hello_world
+    from vercel.workflow.runtime import start
+
+    await start(hello_world)
+
     return {
         "message": "Hello from FastAPI backend!",
         "timestamp": datetime.now().isoformat(),
     }
 
 
-@router.post("/api/echo", response_model=MessageResponse)
+@router.post("/echo", response_model=MessageResponse)
 def echo_message(message: Message):
     return MessageResponse(
         message=message.text,
@@ -57,7 +62,7 @@ def echo_message(message: Message):
     )
 
 
-@router.get("/api/items")
+@router.get("/items")
 def get_items():
     return {
         "items": [

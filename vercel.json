@@ -1,0 +1,20 @@
+{
+  "fluid": true,
+  "experimentalServices": {
+    "frontend": {
+      "framework": "nextjs",
+      "entrypoint": "frontend",
+      "routePrefix": "/"
+    },
+    "backend": {
+      "framework": "fastapi",
+      "entrypoint": "backend",
+      "routePrefix": "/api"
+    },
+    "workflow": {
+      "type": "worker",
+      "entrypoint": "backend/workflow.py",
+      "topic": "__wkf_*"
+    }
+  }
+}
