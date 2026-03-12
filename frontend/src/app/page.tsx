@@ -10,14 +10,12 @@ interface HealthResponse {
 }
 
 interface GreetingResponse {
-  message: string;
-  timestamp: string;
+  runId: string,
 }
 
-interface EchoResponse {
-  message: string;
-  timestamp: string;
-  reversed: string;
+interface GreetingsResponse {
+  status: string;
+  result: string[] | null;
 }
 
 interface Item {
@@ -33,13 +31,13 @@ interface ItemsResponse {
 export default function Home() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [greeting, setGreeting] = useState<GreetingResponse | null>(null);
-  const [echoInput, setEchoInput] = useState("");
-  const [echoResponse, setEchoResponse] = useState<EchoResponse | null>(null);
+  const [runIdInput, setRunIdInput] = useState("");
+  const [greetingsResponse, setGreetingsResponse] = useState<GreetingsResponse | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState({
     health: false,
     greeting: false,
-    echo: false,
+    greetings: false,
     items: false,
   });
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
@@ -78,21 +76,21 @@ export default function Home() {
     }
   };
 
-  const sendEcho = async () => {
-    if (!echoInput.trim()) return;
-    setLoading((prev) => ({ ...prev, echo: true }));
+  const fetchGreetingsResult = async () => {
+    if (!runIdInput.trim()) return;
+    setLoading((prev) => ({ ...prev, greetings: true }));
     try {
-      const res = await fetch(`${BACKEND_URL}/echo`, {
+      const res = await fetch(`${BACKEND_URL}/get_greetings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: echoInput }),
+        body: JSON.stringify({ id: runIdInput }),
       });
-      const data: EchoResponse = await res.json();
-      setEchoResponse(data);
+      const data: GreetingsResponse = await res.json();
+      setGreetingsResponse(data);
     } catch (error) {
-      console.error("Echo request failed:", error);
+      console.error("Failed to fetch greetings result:", error);
     } finally {
-      setLoading((prev) => ({ ...prev, echo: false }));
+      setLoading((prev) => ({ ...prev, greetings: false }));
     }
   };
 
@@ -167,31 +165,31 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Echo Card */}
+        {/* Get Greetings Card */}
         <div className="card">
           <h2>
             <svg className="card-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
             </svg>
-            Echo Service
+            Get Greetings
           </h2>
           <div className="card-content">
-            <p>Send a message and get it echoed back (with reversal).</p>
+            <p>Enter a workflow run ID to get the greetings result.</p>
             <div className="input-group">
               <input
                 type="text"
-                placeholder="Type a message..."
-                value={echoInput}
-                onChange={(e) => setEchoInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && sendEcho()}
+                placeholder="Paste run ID here..."
+                value={runIdInput}
+                onChange={(e) => setRunIdInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && fetchGreetingsResult()}
               />
-              <button onClick={sendEcho} disabled={loading.echo || !echoInput.trim()}>
-                {loading.echo ? <span className="loading"></span> : "Send"}
+              <button onClick={fetchGreetingsResult} disabled={loading.greetings || !runIdInput.trim()}>
+                {loading.greetings ? <span className="loading"></span> : "Fetch"}
               </button>
             </div>
-            {echoResponse && (
+            {greetingsResponse && (
               <div className="response-box">
-                {JSON.stringify(echoResponse, null, 2)}
+                {JSON.stringify(greetingsResponse, null, 2)}
               </div>
             )}
           </div>

@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime
 
+from vercel.workflow import start, Run
 app = FastAPI(title="Backend API")
 
 # Configure CORS for frontend communication
@@ -17,14 +18,13 @@ app.add_middleware(
 router = APIRouter()
 
 
-class Message(BaseModel):
-    text: str
+class RunRequest(BaseModel):
+    id: str
 
 
 class MessageResponse(BaseModel):
-    message: str
-    timestamp: str
-    reversed: str
+    status: str
+    result: list[str] | None
 
 
 @router.get("/")
@@ -43,17 +43,21 @@ def health_check():
 @router.get("/greeting")
 async def get_greeting():
     from workflow import hello_world
-    from vercel.workflow.runtime import start
 
-    return (await start(hello_world)).run_id
+    return {"runId": (await start(hello_world)).run_id}
 
 
-@router.post("/echo", response_model=MessageResponse)
-def echo_message(message: Message):
+@router.post("/get_greetings", response_model=MessageResponse)
+async def echo_message(req: RunRequest):
+    run = Run(req.id)
+    status = await run.status()
+    result = None
+    if status == "completed":
+        result = await run.return_value()
+
     return MessageResponse(
-        message=message.text,
-        timestamp=datetime.now().isoformat(),
-        reversed=message.text[::-1],
+        status=status,
+        result=result,
     )
 
 
