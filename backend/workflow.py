@@ -10,6 +10,7 @@ runtime.step_entrypoint()
 async def hello_world() -> list[str]:
     async with asyncio.TaskGroup() as tg:
         t1 = tg.create_task(orchestrate(greeting_en, greeting_es))
+        await sleep("3 seconds")
         t2 = tg.create_task(orchestrate(greeting_es, greeting_en, greeting_es))
         return [await t1, await t2]
 
