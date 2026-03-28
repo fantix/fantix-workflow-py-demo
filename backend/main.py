@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from datetime import datetime
 
 from vercel.workflow import start, Run
+
 app = FastAPI(title="Backend API")
 
 # Configure CORS for frontend communication
@@ -32,23 +33,30 @@ def root():
     return {"status": "ok", "service": "backend-api"}
 
 
-@router.get("/health")
-def health_check():
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-    }
+@router.get("/start_workflow")
+async def start_workflow(token: str):
+    from workflow import multi_drafter
+
+    run = await start(multi_drafter, token)
+    return {"runId": run.run_id}
 
 
-@router.get("/greeting")
-async def get_greeting():
-    from workflow import hello_world
+@router.get("/draft_request")
+async def draft_request(prompt: str, token: str):
+    from workflow import DraftRequest
 
-    return {"runId": (await start(hello_world)).run_id}
+    await DraftRequest(prompt).resume(token)
 
 
-@router.post("/get_greetings", response_model=MessageResponse)
-async def echo_message(req: RunRequest):
+@router.get("/finish_workflow")
+async def finish_workflow(token: str):
+    from workflow import DraftRequest
+
+    await DraftRequest(None).resume(token)
+
+
+@router.post("/get_result", response_model=MessageResponse)
+async def get_result(req: RunRequest):
     run = Run(req.id)
     status = await run.status()
     result = None
@@ -59,17 +67,6 @@ async def echo_message(req: RunRequest):
         status=status,
         result=result,
     )
-
-
-@router.get("/items")
-def get_items():
-    return {
-        "items": [
-            {"id": 1, "name": "Widget", "price": 9.99},
-            {"id": 2, "name": "Gadget", "price": 19.99},
-            {"id": 3, "name": "Gizmo", "price": 29.99},
-        ]
-    }
 
 
 app.include_router(router)

@@ -14,7 +14,7 @@
     "workflow": {
       "type": "worker",
       "entrypoint": "backend/workflow.py",
-      "topic": "__wkf_*"
+      "topics": ["__wkf_*"]
     }
   }
 }

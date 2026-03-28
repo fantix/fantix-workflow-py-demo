@@ -1,231 +1,228 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
-interface HealthResponse {
-  status: string;
-  timestamp: string;
-}
-
-interface GreetingResponse {
-  runId: string,
-}
-
-interface GreetingsResponse {
+interface ResultResponse {
   status: string;
   result: string[] | null;
 }
 
-interface Item {
-  id: number;
-  name: string;
-  price: number;
-}
-
-interface ItemsResponse {
-  items: Item[];
-}
-
 export default function Home() {
-  const [health, setHealth] = useState<HealthResponse | null>(null);
-  const [greeting, setGreeting] = useState<GreetingResponse | null>(null);
-  const [runIdInput, setRunIdInput] = useState("");
-  const [greetingsResponse, setGreetingsResponse] = useState<GreetingsResponse | null>(null);
-  const [items, setItems] = useState<Item[]>([]);
+  const [token, setToken] = useState("");
+  const [runId, setRunId] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState("");
+  const [resultRunId, setResultRunId] = useState("");
+  const [resultResponse, setResultResponse] = useState<ResultResponse | null>(null);
+  const [logs, setLogs] = useState<string[]>([]);
   const [loading, setLoading] = useState({
-    health: false,
-    greeting: false,
-    greetings: false,
-    items: false,
+    start: false,
+    draft: false,
+    finish: false,
+    result: false,
   });
-  const [isConnected, setIsConnected] = useState<boolean | null>(null);
 
-  // Check backend health on mount
-  useEffect(() => {
-    checkHealth();
-  }, []);
+  const addLog = (msg: string) => setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
 
-  const checkHealth = async () => {
-    setLoading((prev) => ({ ...prev, health: true }));
+  const startWorkflow = async () => {
+    if (!token.trim()) return;
+    setLoading((prev) => ({ ...prev, start: true }));
     try {
-      const res = await fetch(`${BACKEND_URL}/health`);
+      const res = await fetch(`${BACKEND_URL}/start_workflow?token=${encodeURIComponent(token)}`);
       const data = await res.json();
-      setHealth(data);
-      setIsConnected(true);
+      setRunId(data.runId);
+      setResultRunId(data.runId);
+      addLog(`Workflow started — runId: ${data.runId}`);
     } catch (error) {
-      console.error("Health check failed:", error);
-      setHealth(null);
-      setIsConnected(false);
+      console.error("Failed to start workflow:", error);
+      addLog("Failed to start workflow");
     } finally {
-      setLoading((prev) => ({ ...prev, health: false }));
+      setLoading((prev) => ({ ...prev, start: false }));
     }
   };
 
-  const fetchGreeting = async () => {
-    setLoading((prev) => ({ ...prev, greeting: true }));
+  const sendDraftRequest = async () => {
+    if (!prompt.trim() || !token.trim()) return;
+    setLoading((prev) => ({ ...prev, draft: true }));
     try {
-      const res = await fetch(`${BACKEND_URL}/greeting`);
-      const data: GreetingResponse = await res.json();
-      setGreeting(data);
+      await fetch(`${BACKEND_URL}/draft_request?prompt=${encodeURIComponent(prompt)}&token=${encodeURIComponent(token)}`);
+      addLog(`Draft request sent: "${prompt}"`);
+      setPrompt("");
     } catch (error) {
-      console.error("Failed to fetch greeting:", error);
+      console.error("Failed to send draft request:", error);
+      addLog("Failed to send draft request");
     } finally {
-      setLoading((prev) => ({ ...prev, greeting: false }));
+      setLoading((prev) => ({ ...prev, draft: false }));
     }
   };
 
-  const fetchGreetingsResult = async () => {
-    if (!runIdInput.trim()) return;
-    setLoading((prev) => ({ ...prev, greetings: true }));
+  const finishWorkflow = async () => {
+    if (!token.trim()) return;
+    setLoading((prev) => ({ ...prev, finish: true }));
     try {
-      const res = await fetch(`${BACKEND_URL}/get_greetings`, {
+      await fetch(`${BACKEND_URL}/finish_workflow?token=${encodeURIComponent(token)}`);
+      addLog("Workflow finish signal sent");
+    } catch (error) {
+      console.error("Failed to finish workflow:", error);
+      addLog("Failed to finish workflow");
+    } finally {
+      setLoading((prev) => ({ ...prev, finish: false }));
+    }
+  };
+
+  const getResult = async () => {
+    if (!resultRunId.trim()) return;
+    setLoading((prev) => ({ ...prev, result: true }));
+    try {
+      const res = await fetch(`${BACKEND_URL}/get_result`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: runIdInput }),
+        body: JSON.stringify({ id: resultRunId }),
       });
-      const data: GreetingsResponse = await res.json();
-      setGreetingsResponse(data);
+      const data: ResultResponse = await res.json();
+      setResultResponse(data);
+      addLog(`Result fetched — status: ${data.status}`);
     } catch (error) {
-      console.error("Failed to fetch greetings result:", error);
+      console.error("Failed to fetch result:", error);
+      addLog("Failed to fetch result");
     } finally {
-      setLoading((prev) => ({ ...prev, greetings: false }));
-    }
-  };
-
-  const fetchItems = async () => {
-    setLoading((prev) => ({ ...prev, items: true }));
-    try {
-      const res = await fetch(`${BACKEND_URL}/items`);
-      const data: ItemsResponse = await res.json();
-      setItems(data.items);
-    } catch (error) {
-      console.error("Failed to fetch items:", error);
-    } finally {
-      setLoading((prev) => ({ ...prev, items: false }));
+      setLoading((prev) => ({ ...prev, result: false }));
     }
   };
 
   return (
     <div className="container">
       <header>
-        <h1>Next.js + FastAPI</h1>
-        <p>Frontend-backend communication demo</p>
-        <div className={`status-badge ${isConnected === true ? "connected" : isConnected === false ? "disconnected" : ""}`}>
-          <span className="status-dot"></span>
-          {isConnected === null
-            ? "Checking connection..."
-            : isConnected
-            ? "Backend connected"
-            : "Backend disconnected"}
-        </div>
+        <h1>Multi-Drafter Workflow</h1>
+        <p>Interactive workflow demo with Vercel Workflow + FastAPI</p>
       </header>
 
+      {/* Global token input */}
+      <div className="token-bar">
+        <label htmlFor="token">Workflow Token</label>
+        <input
+          id="token"
+          type="text"
+          placeholder="Enter a unique token (e.g. my-session-1)..."
+          value={token}
+          onChange={(e) => setToken(e.target.value)}
+        />
+      </div>
+
       <div className="cards-grid">
-        {/* Health Check Card */}
+        {/* 1. Start Workflow */}
+        <div className="card">
+          <h2>
+            <svg className="card-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Start Workflow
+          </h2>
+          <div className="card-content">
+            <p>Launch the multi-drafter workflow with the token above.</p>
+            <button onClick={startWorkflow} disabled={loading.start || !token.trim()}>
+              {loading.start ? <span className="loading"></span> : "Start"}
+            </button>
+            {runId && (
+              <div className="response-box">
+                <span className="label">Run ID:</span> {runId}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 2. Send Draft Request */}
+        <div className="card">
+          <h2>
+            <svg className="card-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Send Draft Request
+          </h2>
+          <div className="card-content">
+            <p>Send a prompt to both the thinking &amp; fast drafters.</p>
+            <div className="input-group">
+              <input
+                type="text"
+                placeholder="Enter your prompt..."
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && sendDraftRequest()}
+              />
+              <button onClick={sendDraftRequest} disabled={loading.draft || !prompt.trim() || !token.trim()}>
+                {loading.draft ? <span className="loading"></span> : "Send"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Finish Workflow */}
         <div className="card">
           <h2>
             <svg className="card-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Health Check
+            Finish Workflow
           </h2>
           <div className="card-content">
-            <p>Check if the backend API is running and responsive.</p>
-            <button onClick={checkHealth} disabled={loading.health}>
-              {loading.health ? <span className="loading"></span> : "Check Health"}
+            <p>Signal both drafters to stop and finalize the workflow.</p>
+            <button onClick={finishWorkflow} disabled={loading.finish || !token.trim()}>
+              {loading.finish ? <span className="loading"></span> : "Finish"}
             </button>
-            {health && (
-              <div className="response-box">
-                {JSON.stringify(health, null, 2)}
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Greeting Card */}
+        {/* 4. Get Result */}
         <div className="card">
           <h2>
             <svg className="card-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            Get Greeting
+            Get Result
           </h2>
           <div className="card-content">
-            <p>Fetch a greeting message from the backend.</p>
-            <button onClick={fetchGreeting} disabled={loading.greeting}>
-              {loading.greeting ? <span className="loading"></span> : "Fetch Greeting"}
-            </button>
-            {greeting && (
-              <div className="response-box">
-                {JSON.stringify(greeting, null, 2)}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Get Greetings Card */}
-        <div className="card">
-          <h2>
-            <svg className="card-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-            </svg>
-            Get Greetings
-          </h2>
-          <div className="card-content">
-            <p>Enter a workflow run ID to get the greetings result.</p>
+            <p>Fetch the workflow result by run ID.</p>
             <div className="input-group">
               <input
                 type="text"
-                placeholder="Paste run ID here..."
-                value={runIdInput}
-                onChange={(e) => setRunIdInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && fetchGreetingsResult()}
+                placeholder="Run ID..."
+                value={resultRunId}
+                onChange={(e) => setResultRunId(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && getResult()}
               />
-              <button onClick={fetchGreetingsResult} disabled={loading.greetings || !runIdInput.trim()}>
-                {loading.greetings ? <span className="loading"></span> : "Fetch"}
+              <button onClick={getResult} disabled={loading.result || !resultRunId.trim()}>
+                {loading.result ? <span className="loading"></span> : "Fetch"}
               </button>
             </div>
-            {greetingsResponse && (
+            {resultResponse && (
               <div className="response-box">
-                {JSON.stringify(greetingsResponse, null, 2)}
+                <div><span className="label">Status:</span> <span className={`status-tag ${resultResponse.status}`}>{resultResponse.status}</span></div>
+                {resultResponse.result && (
+                  <ul className="result-list">
+                    {resultResponse.result.map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
           </div>
         </div>
+      </div>
 
-        {/* Items Card */}
-        <div className="card">
-          <h2>
-            <svg className="card-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-            </svg>
-            Items List
-          </h2>
-          <div className="card-content">
-            <p>Fetch a list of items from the backend.</p>
-            <button onClick={fetchItems} disabled={loading.items}>
-              {loading.items ? <span className="loading"></span> : "Load Items"}
-            </button>
-            {items.length > 0 && (
-              <ul className="items-list">
-                {items.map((item) => (
-                  <li key={item.id}>
-                    <span className="item-name">{item.name}</span>
-                    <span className="item-price">${item.price.toFixed(2)}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
+      {/* Activity Log */}
+      {logs.length > 0 && (
+        <div className="env-info">
+          <h3>Activity Log</h3>
+          <div className="log-box">
+            {logs.map((log, i) => (
+              <div key={i} className="log-line">{log}</div>
+            ))}
           </div>
         </div>
-      </div>
-
-      <div className="env-info">
-        <h3>Environment Configuration</h3>
-        <code>NEXT_PUBLIC_BACKEND_URL={BACKEND_URL}</code>
-      </div>
+      )}
     </div>
   );
 }

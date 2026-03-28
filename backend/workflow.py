@@ -1,4 +1,4 @@
-import asyncio, random
+import asyncio, dataclasses, random
 
 from vercel.workflow import *
 from vercel.workflow import runtime
@@ -6,29 +6,42 @@ from vercel.workflow import runtime
 runtime.workflow_entrypoint()
 runtime.step_entrypoint()
 
+
+@dataclasses.dataclass
+class DraftRequest(HookMixin):
+    prompt: str | None
+
+
 @workflow
-async def hello_world() -> list[str]:
-    async with asyncio.TaskGroup() as tg:
-        t1 = tg.create_task(orchestrate(greeting_en, greeting_es))
-        await sleep("3 seconds")
-        t2 = tg.create_task(orchestrate(greeting_es, greeting_en, greeting_es))
-        return [await t1, await t2]
+async def multi_drafter(token: str) -> list[str]:
+    try:
+        result = []
+        hook = DraftRequest.wait(token=token)
+        async with asyncio.TaskGroup() as tg:
+            tg.create_task(thinking_drafter(hook, result))
+            tg.create_task(fast_drafter(hook, result))
+        return result
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        raise
 
 
-async def orchestrate(*greeting_steps) -> str:
-    rv = []
-    for (i, greeting) in enumerate(greeting_steps):
-        rv.append(await greeting(f"workflow{i}"))
-    return ", ".join(rv)
+async def thinking_drafter(hook: HookEvent[DraftRequest], result: list[str]) -> None:
+    async for request in hook:
+        if request.prompt is None:
+            hook.dispose()
+            break
+
+        await asyncio.sleep(random.random() * 2)
+        result.append(f"Thinking: {request.prompt}")
 
 
-@step
-async def greeting_en(name: str) -> str:
-    await asyncio.sleep(random.random())
-    return f"Hello, {name}!"
+async def fast_drafter(hook: HookEvent[DraftRequest], result: list[str]) -> None:
+    async for request in hook:
+        if request.prompt is None:
+            hook.dispose()
+            break
 
-
-@step
-async def greeting_es(name: str) -> str:
-    await asyncio.sleep(random.random())
-    return f"¡Hola, {name}!"
+        await asyncio.sleep(random.random())
+        result.append(f"Fast: {request.prompt}")

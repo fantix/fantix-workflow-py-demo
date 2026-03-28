@@ -206,33 +206,113 @@ input[type="text"]::placeholder {
   border: 1px solid var(--border);
 }
 
-.items-list {
-  list-style: none;
-  margin-top: 1rem;
-}
-
-.items-list li {
+/* Token bar */
+.token-bar {
+  margin-bottom: 2rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1rem;
-  background: var(--bg-secondary);
-  border-radius: 8px;
-  margin-bottom: 0.5rem;
-  transition: background 0.2s ease;
+  gap: 1rem;
 }
 
-.items-list li:hover {
-  background: var(--bg-primary);
-}
-
-.item-name {
-  font-weight: 500;
-}
-
-.item-price {
-  color: var(--accent);
+.token-bar label {
   font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+
+.token-bar input {
+  flex: 1;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  transition: border-color 0.2s ease;
+}
+
+.token-bar input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.token-bar input::placeholder {
+  color: var(--text-secondary);
+}
+
+/* Response box label */
+.response-box .label {
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-right: 0.25rem;
+}
+
+/* Status tag */
+.status-tag {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-tag.completed {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--success);
+}
+
+.status-tag.running, .status-tag.pending {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--accent-hover);
+}
+
+.status-tag.failed {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--error);
+}
+
+/* Result list */
+.result-list {
+  list-style: none;
+  margin-top: 0.75rem;
+}
+
+.result-list li {
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-primary);
+  border-radius: 6px;
+  margin-bottom: 0.35rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  border-left: 3px solid var(--accent);
+}
+
+/* Log box */
+.log-box {
+  background: var(--bg-primary);
+  border-radius: 6px;
+  padding: 0.75rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.log-line {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  padding: 0.2rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.log-line:last-child {
+  border-bottom: none;
 }
 
 .loading {
