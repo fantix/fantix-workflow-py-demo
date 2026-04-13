@@ -33,7 +33,7 @@ async def thinking_drafter(hook: HookEvent[DraftRequest], result: list[str]) -> 
             hook.dispose()
             break
 
-        await asyncio.sleep(random.random() * 2)
+        await sleep(random.random() * 2)
         result.append(f"Thinking: {request.prompt}")
 
 
@@ -43,5 +43,5 @@ async def fast_drafter(hook: HookEvent[DraftRequest], result: list[str]) -> None
             hook.dispose()
             break
 
-        await asyncio.sleep(random.random())
+        await sleep(random.random())
         result.append(f"Fast: {request.prompt}")
