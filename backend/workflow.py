@@ -1,12 +1,12 @@
 import asyncio, dataclasses, random
 
-from vercel.workflow import *
+from vercel import workflow
 
-wf = WorkflowRegistry()
+wf = workflow.Workflows()
 
 
 @dataclasses.dataclass
-class DraftRequest(HookMixin):
+class DraftRequest(workflow.BaseHook):
     prompt: str | None
 
 
@@ -25,21 +25,21 @@ async def multi_drafter(token: str) -> list[str]:
         raise
 
 
-async def thinking_drafter(hook: HookEvent[DraftRequest], result: list[str]) -> None:
+async def thinking_drafter(hook: workflow.HookEvent[DraftRequest], result: list[str]) -> None:
     async for request in hook:
         if request.prompt is None:
             hook.dispose()
             break
 
-        await sleep(random.random() * 2)
+        await workflow.sleep(random.random() * 2)
         result.append(f"Thinking: {request.prompt}")
 
 
-async def fast_drafter(hook: HookEvent[DraftRequest], result: list[str]) -> None:
+async def fast_drafter(hook: workflow.HookEvent[DraftRequest], result: list[str]) -> None:
     async for request in hook:
         if request.prompt is None:
             hook.dispose()
             break
 
-        await sleep(random.random())
+        await workflow.sleep(random.random())
         result.append(f"Fast: {request.prompt}")
