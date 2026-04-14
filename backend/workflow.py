@@ -1,10 +1,8 @@
 import asyncio, dataclasses, random
 
 from vercel.workflow import *
-from vercel.workflow import runtime
 
-runtime.workflow_entrypoint()
-runtime.step_entrypoint()
+wf = WorkflowRegistry()
 
 
 @dataclasses.dataclass
@@ -12,7 +10,7 @@ class DraftRequest(HookMixin):
     prompt: str | None
 
 
-@workflow
+@wf.workflow
 async def multi_drafter(token: str) -> list[str]:
     try:
         result = []

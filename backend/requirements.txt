@@ -1,4 +1,4 @@
 fastapi==0.109.0
 uvicorn[standard]==0.27.0
 python-dotenv==1.0.0
-vercel @ git+https://github.com/vercel/vercel-py.git@3107e66984bc81954e58a195d85a8fa66b41871f
+vercel @ git+https://github.com/vercel/vercel-py.git@f35e80da4d091014f56e66bb8b2cdd75b3ce1926
