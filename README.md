@@ -1,92 +1,55 @@
-# Next.js Frontend + FastAPI Backend
+# Multi-Drafter Workflow Demo
 
-A demo project showcasing frontend-backend communication using Next.js and FastAPI.
+A demo project showcasing [Vercel Workflow](https://vercel.com/docs/workflow) with a Next.js frontend and FastAPI backend. The workflow runs two concurrent "drafters" (thinking and fast) that process prompts in parallel, demonstrating hooks, concurrent tasks, and long-running workflow orchestration.
 
 ## Project Structure
 
 ```
-next-frontend-backend-zc/
+fantix-workflow-py-demo/
+├── vercel.json              # Vercel Fluid config (services + workflow worker)
 ├── frontend/                # Next.js frontend
-│   ├── src/app/             # App Router pages
-│   │   ├── layout.tsx       # Root layout
-│   │   ├── page.tsx         # Main page with API calls
-│   │   └── globals.css      # Styles
-│   ├── package.json         # Node.js dependencies
-│   ├── next.config.js       # Next.js configuration
-│   └── tsconfig.json        # TypeScript configuration
+│   └── src/app/
+│       ├── layout.tsx       # Root layout
+│       ├── page.tsx         # Workflow interaction UI
+│       └── globals.css      # Styles
 ├── backend/                 # FastAPI backend
 │   ├── main.py              # API endpoints
+│   ├── workflow.py          # Workflow definition (multi-drafter)
 │   └── requirements.txt     # Python dependencies
 ```
 
-## Setup
+## How It Works
 
-### Backend (FastAPI)
+`backend/workflow.py` defines a `multi_drafter` workflow that:
 
-```bash
-# Navigate to backend directory
-cd backend
-
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the server
-uvicorn main:app --reload --port 8000
-```
-
-The backend will be available at http://localhost:8000
-
-### Frontend (Next.js)
-
-```bash
-# Navigate to frontend directory
-cd frontend
-
-# Install dependencies
-npm install
-
-# Create .env.local file
-echo "NEXT_PUBLIC_BACKEND_URL=http://localhost:8000" > .env.local
-
-# Run development server
-npm run dev
-```
-
-The frontend will be available at http://localhost:3000
-
-## Environment Variables
-
-The frontend uses `NEXT_PUBLIC_BACKEND_URL` to communicate with the backend:
-
-- Development: `http://localhost:8000`
-- Production: Set this to your deployed backend URL
+1. Waits for `DraftRequest` hooks (user prompts sent via the API)
+2. Dispatches each prompt to two concurrent drafters using `asyncio.TaskGroup`:
+   - **Thinking drafter** -- simulates slower, deeper processing (up to 2s)
+   - **Fast drafter** -- simulates quicker responses (up to 1s)
+3. Collects results from both drafters into a list
+4. Completes when a `None` prompt is received as the termination signal
 
 ## API Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/health` | GET | Health check |
-| `/api/greeting` | GET | Get a greeting message |
-| `/api/echo` | POST | Echo back a message (with reversal) |
-| `/api/items` | GET | Get list of items |
+| `/api/` | GET | Health check |
+| `/api/start_workflow?token=` | GET | Start the multi-drafter workflow with a unique token |
+| `/api/draft_request?token=&prompt=` | GET | Send a prompt to both drafters |
+| `/api/finish_workflow?token=` | GET | Signal drafters to stop (sends `None` prompt) |
+| `/api/get_result` | POST | Get workflow status and results by `runId` |
 
-## Running Both Services
+## Usage Flow
 
-**Terminal 1 - Backend:**
-```bash
-cd backend
-source venv/bin/activate
-uvicorn main:app --reload --port 8000
+1. **Start** -- provide a unique token to create a workflow run (returns a `runId`)
+2. **Send prompts** -- send one or more draft requests; both drafters process each prompt concurrently
+3. **Finish** -- send the finish signal to stop the drafters
+4. **Get result** -- poll with the `runId` until status is `completed`, then read the collected results
+
+## Local Development
+
+```
+vercel dev
 ```
 
-**Terminal 2 - Frontend:**
-```bash
-cd frontend
-npm run dev
-```
-
-Then open http://localhost:3000 in your browser.
+This starts both the frontend and backend. Open http://localhost:3000 in your browser.

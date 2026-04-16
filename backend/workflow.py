@@ -31,7 +31,7 @@ async def thinking_drafter(hook: workflow.HookEvent[DraftRequest], result: list[
             hook.dispose()
             break
 
-        await workflow.sleep(random.random() * 2)
+        await workflow.sleep(random.random() * 2000)
         result.append(f"Thinking: {request.prompt}")
 
 
@@ -41,5 +41,5 @@ async def fast_drafter(hook: workflow.HookEvent[DraftRequest], result: list[str]
             hook.dispose()
             break
 
-        await workflow.sleep(random.random())
+        await workflow.sleep(random.random() * 1000)
         result.append(f"Fast: {request.prompt}")
