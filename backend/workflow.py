@@ -18,6 +18,7 @@ async def multi_drafter(token: str) -> list[str]:
         async with asyncio.TaskGroup() as tg:
             tg.create_task(thinking_drafter(hook, result))
             tg.create_task(fast_drafter(hook, result))
+        await workflow.sleep(random.random() * 1000)
         return result
     except Exception:
         import traceback
